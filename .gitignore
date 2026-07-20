@@ -1,0 +1,21 @@
+node_modules/
+.pnpm-store/
+.DS_Store
+.env
+.env.*
+!.env.example
+
+.expo/
+dist/
+web-build/
+coverage/
+
+*.db
+*.db-shm
+*.db-wal
+
+apps/client/ios/
+apps/client/android/
+
+# Local planning artifacts
+PLAN.html

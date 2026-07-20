@@ -1,0 +1,19 @@
+{
+  "name": "reciping",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.14.0",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @reciping/client start",
+    "dev:api": "pnpm --filter @reciping/api dev",
+    "ios": "pnpm --filter @reciping/client ios",
+    "android": "pnpm --filter @reciping/client android",
+    "web": "pnpm --filter @reciping/client web",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test:api": "pnpm --filter @reciping/api test"
+  }
+}
