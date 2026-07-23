@@ -118,6 +118,19 @@ export async function saveRecipe(input: RecipeInput, id?: string) {
   const now = Date.now();
   const recipeId = id ?? createId('recipe');
   const existing = id ? await getRecipe(id) : null;
+  const ingredientRows = (input.ingredients ?? [])
+    .filter((ingredient) => ingredient.name.trim())
+    .map((ingredient, position) => ({
+      id: ingredient.id ?? createId('ingredient'),
+      recipeId,
+      position,
+      groupName: ingredient.groupName?.trim() || null,
+      quantity: ingredient.quantity?.trim() || null,
+      unit: ingredient.unit?.trim() || null,
+      name: ingredient.name.trim(),
+      preparation: ingredient.preparation?.trim() || null,
+      originalLine: ingredient.originalLine?.trim() || null,
+    }));
   const row = {
     title: input.title.trim() || 'Untitled recipe',
     summary: input.summary?.trim() ?? '',
@@ -134,57 +147,45 @@ export async function saveRecipe(input: RecipeInput, id?: string) {
     updatedAt: now,
   } as const;
 
-  if (existing) {
-    await database.update(recipes).set(row).where(eq(recipes.id, recipeId));
-  } else {
-    await database.insert(recipes).values({
-      id: recipeId,
-      ...row,
-      createdAt: now,
-      deletedAt: null,
-    });
-  }
-
-  await database.delete(ingredients).where(eq(ingredients.recipeId, recipeId));
-  if (input.ingredients?.length) {
-    await database.insert(ingredients).values(
-      input.ingredients
-        .filter((ingredient) => ingredient.name.trim())
-        .map((ingredient, position) => ({
-          id: ingredient.id ?? createId('ingredient'),
-          recipeId,
-          position,
-          groupName: ingredient.groupName?.trim() || null,
-          quantity: ingredient.quantity?.trim() || null,
-          unit: ingredient.unit?.trim() || null,
-          name: ingredient.name.trim(),
-          preparation: ingredient.preparation?.trim() || null,
-          originalLine: ingredient.originalLine?.trim() || null,
-        })),
-    );
-  }
-
-  await database.delete(recipeCategories).where(eq(recipeCategories.recipeId, recipeId));
-  for (const [position, rawName] of (input.categories ?? []).entries()) {
-    const name = rawName.trim();
-    if (!name) continue;
-    let category = (
-      await database.select().from(categories).where(eq(categories.name, name)).limit(1)
-    )[0];
-    if (!category) {
-      category = {
-        id: createId('category'),
-        name,
-        position,
-        createdAt: now,
-      };
-      await database.insert(categories).values(category);
+  database.transaction((tx) => {
+    if (existing) {
+      tx.update(recipes).set(row).where(eq(recipes.id, recipeId)).run();
+    } else {
+      tx.insert(recipes)
+        .values({
+          id: recipeId,
+          ...row,
+          createdAt: now,
+          deletedAt: null,
+        })
+        .run();
     }
-    await database
-      .insert(recipeCategories)
-      .values({ recipeId, categoryId: category.id })
-      .onConflictDoNothing();
-  }
+
+    tx.delete(ingredients).where(eq(ingredients.recipeId, recipeId)).run();
+    if (ingredientRows.length > 0) {
+      tx.insert(ingredients).values(ingredientRows).run();
+    }
+
+    tx.delete(recipeCategories).where(eq(recipeCategories.recipeId, recipeId)).run();
+    for (const [position, rawName] of (input.categories ?? []).entries()) {
+      const name = rawName.trim();
+      if (!name) continue;
+      let category = tx.select().from(categories).where(eq(categories.name, name)).limit(1).get();
+      if (!category) {
+        category = {
+          id: createId('category'),
+          name,
+          position,
+          createdAt: now,
+        };
+        tx.insert(categories).values(category).run();
+      }
+      tx.insert(recipeCategories)
+        .values({ recipeId, categoryId: category.id })
+        .onConflictDoNothing()
+        .run();
+    }
+  });
 
   return recipeId;
 }

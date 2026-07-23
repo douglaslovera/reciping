@@ -38,7 +38,7 @@ export default function RecipeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const theme = useAppTheme();
-  const { refresh } = useDatabaseContext();
+  const { refresh, settings } = useDatabaseContext();
   const recipeQuery = useDataQuery(() => getRecipe(id), null as Recipe | null, [id]);
   const logQuery = useDataQuery(
     () => listCookingLogs({ recipeId: id, state: 'completed' }),
@@ -83,15 +83,24 @@ export default function RecipeDetailScreen() {
   };
 
   const confirmDelete = () =>
-    Alert.alert('Move recipe to Recently Deleted?', 'Its cooking history will stay available.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(settings.language === 'es' ? '¿Eliminar receta?' : 'Delete recipe?', undefined, [
+      { text: settings.language === 'es' ? 'Cancelar' : 'Cancel', style: 'cancel' },
       {
-        text: 'Move',
+        text: settings.language === 'es' ? 'Eliminar' : 'Delete',
         style: 'destructive',
         onPress: async () => {
-          await softDeleteRecipe(recipe.id);
-          refresh();
-          router.dismissAll();
+          try {
+            await softDeleteRecipe(recipe.id);
+            refresh();
+            goBack();
+          } catch {
+            Alert.alert(
+              settings.language === 'es'
+                ? 'No se pudo eliminar la receta'
+                : 'Could not delete recipe',
+              settings.language === 'es' ? 'Inténtalo de nuevo.' : 'Try again.',
+            );
+          }
         },
       },
     ]);
@@ -129,12 +138,16 @@ export default function RecipeDetailScreen() {
         <Stat
           icon="cash-outline"
           label="Latest cost"
-          value={costs[0]?.costTotal != null ? money(costs[0].costTotal, costs[0].currency) : 'Not set'}
+          value={
+            costs[0]?.costTotal != null
+              ? money(costs[0].costTotal, costs[0].currency, settings.language)
+              : 'Not set'
+          }
         />
       </View>
       {averageCost !== null ? (
         <Text style={[styles.costNote, { color: theme.muted }]}>
-          Average cost: {money(averageCost, costs[0]?.currency)}
+          Average cost: {money(averageCost, costs[0]?.currency, settings.language)}
         </Text>
       ) : null}
 
@@ -223,7 +236,7 @@ export default function RecipeDetailScreen() {
 
       <View style={styles.actions}>
         <SecondaryButton icon="pencil-outline" label="Edit recipe" onPress={() => router.push(`/recipe/${recipe.id}/edit`)} />
-        <SecondaryButton destructive icon="trash-outline" label="Move to Recently Deleted" onPress={confirmDelete} />
+        <SecondaryButton destructive icon="trash-outline" label="Delete" onPress={confirmDelete} />
       </View>
     </Page>
   );
@@ -244,9 +257,11 @@ function formatDate(value: number) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(value);
 }
 
-function money(amount: number, currency?: string | null) {
+function money(amount: number, currency: string | null | undefined, language: 'en' | 'es') {
   try {
-    return new Intl.NumberFormat(undefined, { currency: currency || 'USD', style: 'currency' }).format(amount);
+    return new Intl.NumberFormat(language, { currency: currency || 'USD', style: 'currency' }).format(
+      amount,
+    );
   } catch {
     return `${currency || ''} ${amount.toFixed(2)}`.trim();
   }

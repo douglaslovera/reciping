@@ -52,7 +52,6 @@ export default function NewSessionScreen() {
   return (
     <Page
       left={<IconButton icon="close" label="Close" onPress={router.back} />}
-      subtitle={isPast ? 'Record something you already cooked' : 'A snapshot will be saved'}
       title={isPast ? 'Add past cooking' : 'Start cooking'}>
       <Section title="Choose a recipe">
         <Field

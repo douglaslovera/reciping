@@ -38,6 +38,7 @@ import {
 } from '@/db/repository';
 import type { CookingChange, CookingLog, CookingPhoto, CostItem } from '@/db/types';
 import { persistJournalImage, removeJournalImage } from '@/media-storage';
+import { parseDecimalInput } from '@/number-input';
 import { useAppTheme } from '@/theme';
 
 const changeKinds: { key: CookingChange['kind']; label: string }[] = [
@@ -95,12 +96,16 @@ function SessionEditor({ initial, active }: { initial: CookingLog; active: boole
   const [selectedIngredientId, setSelectedIngredientId] = useState<string | null>(null);
   const [costLabel, setCostLabel] = useState('');
   const [costAmount, setCostAmount] = useState('');
+  const [quickCostAmount, setQuickCostAmount] = useState(initial.costTotal?.toString() ?? '');
   const [saving, setSaving] = useState(false);
   const currency = log.currency || settings.currency;
   const scale =
     log.snapshot.servings && log.servings ? log.servings / log.snapshot.servings : 1;
 
-  useEffect(() => setLog(initial), [initial]);
+  useEffect(() => {
+    setLog(initial);
+    setQuickCostAmount(initial.costTotal?.toString() ?? '');
+  }, [initial]);
 
   const persist = async (patch: Partial<CookingLog>) => {
     const next = { ...log, ...patch };
@@ -151,8 +156,16 @@ function SessionEditor({ initial, active }: { initial: CookingLog; active: boole
   };
 
   const addCostItem = async () => {
-    const amount = Number(costAmount);
-    if (!costLabel.trim() || !Number.isFinite(amount)) return;
+    const amount = parseDecimalInput(costAmount);
+    if (!costLabel.trim() || amount === null) {
+      Alert.alert(
+        settings.language === 'es' ? 'Revisa el costo' : 'Check the cost',
+        settings.language === 'es'
+          ? 'Ingresa un artículo y un monto válido.'
+          : 'Enter an item and a valid amount.',
+      );
+      return;
+    }
     const item: CostItem = { id: createId('cost'), label: costLabel.trim(), amount };
     await persist({
       costMode: 'itemized',
@@ -162,6 +175,21 @@ function SessionEditor({ initial, active }: { initial: CookingLog; active: boole
     });
     setCostLabel('');
     setCostAmount('');
+  };
+
+  const saveQuickCost = async () => {
+    const amount = quickCostAmount.trim() ? parseDecimalInput(quickCostAmount) : null;
+    if (quickCostAmount.trim() && amount === null) {
+      Alert.alert(
+        settings.language === 'es' ? 'Revisa el costo' : 'Check the cost',
+        settings.language === 'es'
+          ? 'Usa un monto como 12.50 o 12,50.'
+          : 'Use an amount like 12.50 or 12,50.',
+      );
+      return;
+    }
+    setQuickCostAmount(amount?.toString() ?? '');
+    await persist({ costMode: 'quick', costTotal: amount, currency });
   };
 
   const addPhoto = async () => {
@@ -229,15 +257,24 @@ function SessionEditor({ initial, active }: { initial: CookingLog; active: boole
   };
 
   const remove = () =>
-    Alert.alert('Move this entry to Recently Deleted?', undefined, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(settings.language === 'es' ? '¿Eliminar registro?' : 'Delete entry?', undefined, [
+      { text: settings.language === 'es' ? 'Cancelar' : 'Cancel', style: 'cancel' },
       {
-        text: 'Move',
+        text: settings.language === 'es' ? 'Eliminar' : 'Delete',
         style: 'destructive',
         onPress: async () => {
-          await softDeleteCookingLog(log.id);
-          refresh();
-          router.dismissAll();
+          try {
+            await softDeleteCookingLog(log.id);
+            refresh();
+            goBack();
+          } catch {
+            Alert.alert(
+              settings.language === 'es'
+                ? 'No se pudo eliminar el registro'
+                : 'Could not delete entry',
+              settings.language === 'es' ? 'Inténtalo de nuevo.' : 'Try again.',
+            );
+          }
         },
       },
     ]);
@@ -277,9 +314,12 @@ function SessionEditor({ initial, active }: { initial: CookingLog; active: boole
       ],
     );
 
-  const total = log.costMode === 'itemized'
-    ? log.costItems.reduce((sum, item) => sum + item.amount, 0)
-    : log.costTotal;
+  const total =
+    log.costMode === 'itemized'
+      ? log.costItems.reduce((sum, item) => sum + item.amount, 0)
+      : log.costMode === 'quick'
+        ? parseDecimalInput(quickCostAmount)
+        : null;
 
   return (
     <Page
@@ -555,12 +595,10 @@ function SessionEditor({ initial, active }: { initial: CookingLog; active: boole
           <Field
             keyboardType="decimal-pad"
             label={`${settings.language === 'es' ? 'Total gastado' : 'Total spent'} (${currency})`}
-            onChangeText={(value) =>
-              setLog((current) => ({ ...current, costTotal: value ? Number(value) : null, currency }))
-            }
-            onEndEditing={() => persist({ costMode: 'quick', costTotal: log.costTotal, currency })}
+            onChangeText={setQuickCostAmount}
+            onEndEditing={saveQuickCost}
             placeholder="0.00"
-            value={log.costTotal?.toString() ?? ''}
+            value={quickCostAmount}
           />
         ) : null}
         {log.costMode === 'itemized' ? (
@@ -568,7 +606,9 @@ function SessionEditor({ initial, active }: { initial: CookingLog; active: boole
             {log.costItems.map((item, index) => (
               <View key={item.id ?? index} style={styles.costRow}>
                 <Text style={[styles.changeValue, { color: theme.text }]}>{item.label}</Text>
-                <Text style={[styles.costValue, { color: theme.text }]}>{money(item.amount, currency)}</Text>
+                <Text style={[styles.costValue, { color: theme.text }]}>
+                  {money(item.amount, currency, settings.language)}
+                </Text>
                 <Pressable
                   onPress={() => persist({ costItems: log.costItems.filter((_, itemIndex) => itemIndex !== index) })}>
                   <Ionicons color={theme.muted} name="close-circle" size={21} />
@@ -598,12 +638,14 @@ function SessionEditor({ initial, active }: { initial: CookingLog; active: boole
               <Text style={[styles.totalLabel, { color: theme.muted }]}>Total</Text>
               {log.servings ? (
                 <Text style={[styles.perServing, { color: theme.muted }]}>
-                  {money(total / log.servings, currency)}{' '}
+                  {money(total / log.servings, currency, settings.language)}{' '}
                   {settings.language === 'es' ? 'por porción' : `per ${log.snapshot.servingUnit.replace(/s$/, '')}`}
                 </Text>
               ) : null}
             </View>
-            <Text style={[styles.totalValue, { color: theme.text }]}>{money(total, currency)}</Text>
+            <Text style={[styles.totalValue, { color: theme.text }]}>
+              {money(total, currency, settings.language)}
+            </Text>
           </GlassSurface>
         ) : null}
       </Section>
@@ -658,7 +700,7 @@ function SessionEditor({ initial, active }: { initial: CookingLog; active: boole
             )}
           </>
         )}
-        <SecondaryButton destructive icon="trash-outline" label="Move to Recently Deleted" onPress={remove} />
+        <SecondaryButton destructive icon="trash-outline" label="Delete" onPress={remove} />
       </View>
     </Page>
   );
@@ -692,9 +734,9 @@ function formatDate(value: number, language?: 'en' | 'es') {
   return new Intl.DateTimeFormat(language, { dateStyle: 'medium', timeStyle: 'short' }).format(value);
 }
 
-function money(amount: number, currency: string) {
+function money(amount: number, currency: string, language: 'en' | 'es') {
   try {
-    return new Intl.NumberFormat(undefined, { currency, style: 'currency' }).format(amount);
+    return new Intl.NumberFormat(language, { currency, style: 'currency' }).format(amount);
   } catch {
     return `${currency} ${amount.toFixed(2)}`;
   }

@@ -19,7 +19,6 @@ export default function AttachSessionScreen() {
   return (
     <Page
       left={<IconButton icon="close" label="Close" onPress={router.back} />}
-      subtitle="The historical snapshot will stay unchanged"
       title="Attach to recipe">
       {recipes.length ? (
         <Section title="Choose a recipe">

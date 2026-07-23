@@ -110,11 +110,6 @@ export default function SettingsScreen() {
         </Pressable>
       </Section>
 
-      <Section title="About">
-        <Text style={[styles.about, { color: theme.muted }]}>
-          Reciping is a private-first cooking notebook. No social feed, profiles, sharing, notifications, or public recipes.
-        </Text>
-      </Section>
     </Page>
   );
 }
@@ -170,5 +165,4 @@ const styles = StyleSheet.create({
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { borderRadius: 15, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 13, paddingVertical: 10 },
   choiceText: { fontSize: 13, fontWeight: '700' },
-  about: { fontSize: 14, lineHeight: 21 },
 });

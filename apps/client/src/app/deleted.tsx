@@ -27,7 +27,6 @@ export default function DeletedScreen() {
   return (
     <Page
       left={<IconButton icon="chevron-back" label="Back" onPress={router.back} />}
-      subtitle="Items remain here until you restore them"
       title="Recently Deleted">
       {empty ? (
         <EmptyState icon="trash-outline" message="Deleted items will appear here." title="Nothing here" />

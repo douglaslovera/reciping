@@ -42,7 +42,6 @@ const es: Record<string, string> = {
     'Guarda enlaces de videos, artículos y consejos personales sin convertirlos en recetas.',
   'New recipe': 'Nueva receta',
   'Edit recipe': 'Editar receta',
-  'Start with only a title': 'Empieza solo con un título',
   'Changes stay local': 'Los cambios permanecen en el dispositivo',
   'Loading…': 'Cargando…',
   'Close': 'Cerrar',
@@ -56,6 +55,8 @@ const es: Record<string, string> = {
   'Cook minutes': 'Minutos de cocción',
   'Ingredients': 'Ingredientes',
   'Ingredient': 'Ingrediente',
+  'Add ingredient': 'Agregar ingrediente',
+  'Remove ingredient': 'Eliminar ingrediente',
   'Quantity': 'Cantidad',
   'Unit': 'Unidad',
   'Preparation (optional)': 'Preparación (opcional)',
@@ -70,6 +71,9 @@ const es: Record<string, string> = {
   'Save recipe': 'Guardar receta',
   'Save as draft': 'Guardar como borrador',
   'Saving…': 'Guardando…',
+  'Could not save recipe': 'No se pudo guardar la receta',
+  'Your changes are still here. Try saving again.':
+    'Tus cambios siguen aquí. Intenta guardar de nuevo.',
   'Add cover photo': 'Agregar foto de portada',
   'Change cover photo': 'Cambiar foto de portada',
   'Start cooking session': 'Iniciar sesión de cocina',
@@ -82,7 +86,7 @@ const es: Record<string, string> = {
   'Cooking history': 'Historial de cocina',
   'You have not cooked this recipe yet.': 'Aún no has preparado esta receta.',
   'Source': 'Fuente',
-  'Move to Recently Deleted': 'Mover a Eliminado recientemente',
+  'Delete': 'Eliminar',
   'Recipe not found': 'Receta no encontrada',
   'It may have been deleted.': 'Puede que haya sido eliminada.',
   'Cooking session': 'Sesión de cocina',
@@ -171,11 +175,7 @@ const es: Record<string, string> = {
     'El texto de las recetas siempre conserva su idioma original. Cambiar el idioma de la app nunca traduce tu contenido.',
   'Restore recipes, journal entries, or saved items':
     'Restaura recetas, entradas del diario o elementos guardados',
-  'About': 'Acerca de',
-  'Reciping is a private-first cooking notebook. No social feed, profiles, sharing, notifications, or public recipes.':
-    'Reciping es un cuaderno de cocina privado. No tiene red social, perfiles, contenido compartido, notificaciones ni recetas públicas.',
   'Edit saved item': 'Editar elemento guardado',
-  'Links only—videos are not uploaded': 'Solo enlaces; los videos no se suben',
   'Type': 'Tipo',
   'Video': 'Video',
   'Article': 'Artículo',
@@ -191,10 +191,7 @@ const es: Record<string, string> = {
     'Guarda recetas, recuerda cada vez que cocinas y conserva los pequeños cambios que hacen tuyo un plato.',
   'Works locally without an account': 'Funciona localmente sin una cuenta',
   'Every cooking log keeps its own snapshot': 'Cada registro conserva su propia versión',
-  'Private by default, with no social features': 'Privado por defecto, sin funciones sociales',
   'Open my recipe book': 'Abrir mi recetario',
-  'Optional cloud backup and AI imports will be added later.':
-    'El respaldo opcional y las importaciones con IA se agregarán después.',
 };
 
 export function translate(language: AppSettings['language'], value: string) {

@@ -13,7 +13,7 @@ import { useAppTheme } from '@/theme';
 export function SavedEditor({ id }: { id?: string }) {
   const router = useRouter();
   const theme = useAppTheme();
-  const { refresh } = useDatabaseContext();
+  const { refresh, settings } = useDatabaseContext();
   const { data: recipes } = useDataQuery(() => listRecipes(), [] as Recipe[]);
   const [kind, setKind] = useState<SavedItem['kind']>('video');
   const [title, setTitle] = useState('');
@@ -54,10 +54,10 @@ export function SavedEditor({ id }: { id?: string }) {
 
   const remove = () =>
     id &&
-    Alert.alert('Move to Recently Deleted?', undefined, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(settings.language === 'es' ? '¿Eliminar elemento?' : 'Delete item?', undefined, [
+      { text: settings.language === 'es' ? 'Cancelar' : 'Cancel', style: 'cancel' },
       {
-        text: 'Move',
+        text: settings.language === 'es' ? 'Eliminar' : 'Delete',
         style: 'destructive',
         onPress: async () => {
           await softDeleteSavedItem(id);
@@ -75,7 +75,6 @@ export function SavedEditor({ id }: { id?: string }) {
           <Text style={[styles.save, { color: theme.accent }]}>Save</Text>
         </Pressable>
       }
-      subtitle="Links only—videos are not uploaded"
       title={id ? 'Edit saved item' : 'Save something'}>
       <Section title="Type">
         <View style={styles.types}>
@@ -157,7 +156,7 @@ export function SavedEditor({ id }: { id?: string }) {
 
       <PrimaryButton disabled={saving || !title.trim()} icon="bookmark-outline" label={saving ? 'Saving…' : 'Save item'} onPress={save} />
       {url ? <SecondaryButton icon="open-outline" label="Open link" onPress={() => Linking.openURL(url)} /> : null}
-      {id ? <SecondaryButton destructive icon="trash-outline" label="Move to Recently Deleted" onPress={remove} /> : null}
+      {id ? <SecondaryButton destructive icon="trash-outline" label="Delete" onPress={remove} /> : null}
     </Page>
   );
 }

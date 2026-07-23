@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, Image, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
+import { GlassSurface } from '@/components/glass-surface';
 import { Text } from '@/components/localized-text';
 import {
   Field,
@@ -16,7 +17,9 @@ import {
 import { useDatabaseContext } from '@/db/provider';
 import { getRecipe, saveRecipe } from '@/db/repository';
 import type { IngredientInput, RecipeInput } from '@/db/types';
+import { translate } from '@/i18n';
 import { persistJournalImage } from '@/media-storage';
+import { parseDecimalInput } from '@/number-input';
 import { useAppTheme } from '@/theme';
 
 const emptyIngredient = (): IngredientInput => ({
@@ -29,8 +32,9 @@ const emptyIngredient = (): IngredientInput => ({
 export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boolean }) {
   const router = useRouter();
   const theme = useAppTheme();
-  const { refresh } = useDatabaseContext();
-  const [loading, setLoading] = useState(Boolean(id));
+  const { refresh, settings } = useDatabaseContext();
+  const ingredientNameRefs = useRef<(TextInput | null)[]>([]);
+  const pendingIngredientFocus = useRef<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
@@ -44,6 +48,13 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
   const [categories, setCategories] = useState('');
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [ingredients, setIngredients] = useState<IngredientInput[]>([emptyIngredient()]);
+
+  useEffect(() => {
+    const index = pendingIngredientFocus.current;
+    if (index === null) return;
+    pendingIngredientFocus.current = null;
+    requestAnimationFrame(() => ingredientNameRefs.current[index]?.focus());
+  }, [ingredients.length]);
 
   useEffect(() => {
     if (!id) return;
@@ -63,7 +74,9 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
         setCoverUri(recipe.coverUri);
         setIngredients(recipe.ingredients.length ? recipe.ingredients : [emptyIngredient()]);
       })
-      .finally(() => setLoading(false));
+      .catch((error: unknown) => {
+        Alert.alert('Could not load recipe', error instanceof Error ? error.message : 'Try again.');
+      });
   }, [id]);
 
   const updateIngredient = (index: number, patch: Partial<IngredientInput>) =>
@@ -72,6 +85,11 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
         itemIndex === index ? { ...ingredient, ...patch } : ingredient,
       ),
     );
+
+  const addIngredient = () => {
+    pendingIngredientFocus.current = ingredients.length;
+    setIngredients((current) => [...current, emptyIngredient()]);
+  };
 
   const pickCover = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -97,7 +115,7 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
           title,
           summary,
           body,
-          servings: servings ? Number(servings) : null,
+          servings: servings ? parseDecimalInput(servings) : null,
           servingUnit,
           prepMinutes: prepMinutes ? Number(prepMinutes) : null,
           cookMinutes: cookMinutes ? Number(cookMinutes) : null,
@@ -113,8 +131,11 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
       refresh();
       router.dismissAll();
       router.replace(`/recipe/${recipeId}`);
-    } catch (error) {
-      Alert.alert('Could not save recipe', error instanceof Error ? error.message : 'Try again.');
+    } catch {
+      Alert.alert(
+        translate(settings.language, 'Could not save recipe'),
+        translate(settings.language, 'Your changes are still here. Try saving again.'),
+      );
     } finally {
       setSaving(false);
     }
@@ -128,7 +149,6 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
           <Text style={[styles.saveText, { color: theme.accent }]}>Save</Text>
         </Pressable>
       }
-      subtitle={loading ? 'Loading…' : id ? 'Changes stay local' : 'Start with only a title'}
       title={id ? 'Edit recipe' : 'New recipe'}>
       {coverUri ? <Image source={{ uri: coverUri }} style={styles.cover} /> : null}
       <SecondaryButton
@@ -193,18 +213,35 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
         </View>
       </Section>
 
-      <Section
-        action={
-          <Pressable
-            onPress={() => setIngredients((current) => [...current, emptyIngredient()])}
-            style={styles.addIngredient}>
-            <Ionicons color={theme.accent} name="add" size={18} />
-            <Text style={[styles.addText, { color: theme.accent }]}>Ingredient</Text>
-          </Pressable>
-        }
-        title="Ingredients">
+      <Section title="Ingredients">
         {ingredients.map((ingredient, index) => (
-          <View key={ingredient.id ?? index} style={[styles.ingredient, { borderColor: theme.border }]}>
+          <GlassSurface effect="clear" key={ingredient.id ?? index} style={styles.ingredientCard}>
+            <View style={styles.ingredientHeader}>
+              <View style={[styles.ingredientNumber, { backgroundColor: theme.accentSoft }]}>
+                <Text style={[styles.ingredientNumberText, { color: theme.accent }]}>{index + 1}</Text>
+              </View>
+              <Text style={[styles.ingredientTitle, { color: theme.text }]}>
+                {translate(settings.language, 'Ingredient')} {index + 1}
+              </Text>
+              <Pressable
+                accessibilityLabel={translate(settings.language, 'Remove ingredient')}
+                hitSlop={10}
+                onPress={() =>
+                  setIngredients((current) => current.filter((_, itemIndex) => itemIndex !== index))
+                }
+                style={styles.remove}>
+                <Ionicons color={theme.muted} name="trash-outline" size={19} />
+              </Pressable>
+            </View>
+            <Field
+              label="Ingredient"
+              onChangeText={(value) => updateIngredient(index, { name: value })}
+              placeholder="whole milk"
+              ref={(input) => {
+                ingredientNameRefs.current[index] = input;
+              }}
+              value={ingredient.name}
+            />
             <View style={styles.quantityRow}>
               <View style={styles.quantity}>
                 <Field
@@ -222,36 +259,20 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
                   value={ingredient.unit ?? ''}
                 />
               </View>
-              {ingredients.length > 1 ? (
-                <Pressable
-                  accessibilityLabel="Remove ingredient"
-                  onPress={() =>
-                    setIngredients((current) => current.filter((_, itemIndex) => itemIndex !== index))
-                  }
-                  style={styles.remove}>
-                  <Ionicons color={theme.muted} name="close-circle" size={22} />
-                </Pressable>
-              ) : null}
             </View>
-            <Field
-              label="Ingredient"
-              onChangeText={(value) => updateIngredient(index, { name: value })}
-              placeholder="whole milk"
-              value={ingredient.name}
-            />
             <Field
               label="Preparation (optional)"
               onChangeText={(value) => updateIngredient(index, { preparation: value })}
               placeholder="room temperature"
               value={ingredient.preparation ?? ''}
             />
-          </View>
+          </GlassSurface>
         ))}
+        <SecondaryButton icon="add" label="Add ingredient" onPress={addIngredient} />
       </Section>
 
       <Section title={pasteMode ? 'Original text or preparation' : 'Preparation'}>
         <Field
-          hint="Basic Markdown is supported: headings, bold, italics, lists, and links."
           label={pasteMode ? 'Paste here, then edit freely' : 'Steps and notes'}
           multiline
           onChangeText={setBody}
@@ -306,16 +327,20 @@ const styles = StyleSheet.create({
   cover: { borderRadius: 24, height: 210, width: '100%' },
   row: { flexDirection: 'row', gap: 12 },
   flex: { flex: 1 },
-  addIngredient: { alignItems: 'center', flexDirection: 'row', gap: 3, padding: 7 },
-  addText: { fontSize: 14, fontWeight: '700' },
-  ingredient: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 11,
-    paddingBottom: 17,
+  ingredientCard: { borderRadius: 20, gap: 12, padding: 14 },
+  ingredientHeader: { alignItems: 'center', flexDirection: 'row', gap: 9 },
+  ingredientNumber: {
+    alignItems: 'center',
+    borderRadius: 12,
+    height: 24,
+    justifyContent: 'center',
+    width: 24,
   },
-  quantityRow: { alignItems: 'flex-end', flexDirection: 'row', gap: 9 },
+  ingredientNumberText: { fontSize: 12, fontWeight: '800' },
+  ingredientTitle: { flex: 1, fontSize: 15, fontWeight: '700' },
+  quantityRow: { flexDirection: 'row', gap: 9 },
   quantity: { flex: 1 },
   unit: { flex: 1.2 },
-  remove: { paddingBottom: 12, paddingHorizontal: 3 },
+  remove: { alignItems: 'center', justifyContent: 'center', padding: 4 },
   bottomActions: { gap: 11, marginTop: 8 },
 });

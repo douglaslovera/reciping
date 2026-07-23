@@ -133,7 +133,9 @@ function LogCard({ log, onPress }: { log: CookingLog; onPress: () => void }) {
           <Text numberOfLines={1} style={[styles.meta, { color: theme.muted }]}>
             {log.rating ? `${'★'.repeat(log.rating)} · ` : ''}
             {log.changes.length} {changesLabel}
-            {log.costTotal != null ? ` · ${money(log.costTotal, log.currency)}` : ''}
+            {log.costTotal != null
+              ? ` · ${money(log.costTotal, log.currency, settings.language)}`
+              : ''}
           </Text>
         </View>
         <Ionicons color={theme.muted} name="chevron-forward" size={18} />
@@ -146,9 +148,11 @@ function formatDate(value: number) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(value);
 }
 
-function money(amount: number, currency: string | null) {
+function money(amount: number, currency: string | null, language: 'en' | 'es') {
   try {
-    return new Intl.NumberFormat(undefined, { currency: currency || 'USD', style: 'currency' }).format(amount);
+    return new Intl.NumberFormat(language, { currency: currency || 'USD', style: 'currency' }).format(
+      amount,
+    );
   } catch {
     return `${currency || ''} ${amount.toFixed(2)}`.trim();
   }

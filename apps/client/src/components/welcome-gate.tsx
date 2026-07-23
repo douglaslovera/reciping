@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Platform, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GlassSurface } from '@/components/glass-surface';
@@ -44,14 +44,8 @@ export function WelcomeGate() {
             <View style={styles.points}>
               <Point icon="phone-portrait-outline" text="Works locally without an account" />
               <Point icon="layers-outline" text="Every cooking log keeps its own snapshot" />
-              <Point icon="lock-closed-outline" text="Private by default, with no social features" />
             </View>
             <PrimaryButton icon="arrow-forward" label="Open my recipe book" onPress={continueToApp} />
-            <Pressable onPress={continueToApp}>
-              <Text style={[styles.small, { color: theme.muted }]}>
-                Optional cloud backup and AI imports will be added later.
-              </Text>
-            </Pressable>
           </GlassSurface>
         </View>
       </SafeAreaView>
@@ -80,5 +74,4 @@ const styles = StyleSheet.create({
   points: { gap: 14, marginVertical: 5 },
   point: { alignItems: 'center', flexDirection: 'row', gap: 11 },
   pointText: { flex: 1, fontSize: 14, fontWeight: '600', lineHeight: 19 },
-  small: { fontSize: 11, lineHeight: 16, textAlign: 'center' },
 });

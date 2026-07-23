@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import type { PropsWithChildren, ReactNode } from 'react';
+import { forwardRef, type PropsWithChildren, type ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -53,7 +54,9 @@ export function Page({
         </View>
         {scroll ? (
           <ScrollView
+            automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
             contentContainerStyle={styles.scrollContent}
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
             {content}
@@ -145,38 +148,46 @@ export function SecondaryButton({
   );
 }
 
-export function Field({
-  label,
-  hint,
-  multiline,
-  ...props
-}: TextInputProps & { label: string; hint?: string }) {
-  const theme = useAppTheme();
-  const { settings } = useDatabaseContext();
-  const scale = settings.readingScale === 'extra-large' ? 1.24 : settings.readingScale === 'large' ? 1.12 : 1;
-  return (
-    <View style={styles.field}>
-      <Text style={[styles.fieldLabel, { color: theme.text }]}>{label}</Text>
-      <TextInput
-        {...props}
-        multiline={multiline}
-        placeholder={
-          typeof props.placeholder === 'string'
-            ? translate(settings.language, props.placeholder)
-            : props.placeholder
-        }
-        placeholderTextColor={theme.muted}
-        style={[
-          styles.input,
-          multiline && styles.multiline,
-          { backgroundColor: theme.surface, borderColor: theme.border, color: theme.text, fontSize: 16 * scale },
-          props.style,
-        ]}
-      />
-      {hint ? <Text style={[styles.hint, { color: theme.muted }]}>{hint}</Text> : null}
-    </View>
-  );
-}
+export const Field = forwardRef<TextInput, TextInputProps & { label: string; hint?: string }>(
+  function Field({ label, hint, multiline, ...props }, ref) {
+    const theme = useAppTheme();
+    const { settings } = useDatabaseContext();
+    const scale =
+      settings.readingScale === 'extra-large'
+        ? 1.24
+        : settings.readingScale === 'large'
+          ? 1.12
+          : 1;
+    return (
+      <View style={styles.field}>
+        <Text style={[styles.fieldLabel, { color: theme.text }]}>{label}</Text>
+        <TextInput
+          {...props}
+          multiline={multiline}
+          ref={ref}
+          placeholder={
+            typeof props.placeholder === 'string'
+              ? translate(settings.language, props.placeholder)
+              : props.placeholder
+          }
+          placeholderTextColor={theme.muted}
+          style={[
+            styles.input,
+            multiline && styles.multiline,
+            {
+              backgroundColor: theme.surface,
+              borderColor: theme.border,
+              color: theme.text,
+              fontSize: 16 * scale,
+            },
+            props.style,
+          ]}
+        />
+        {hint ? <Text style={[styles.hint, { color: theme.muted }]}>{hint}</Text> : null}
+      </View>
+    );
+  },
+);
 
 export function Section({
   title,
