@@ -19,3 +19,8 @@ export async function removeJournalImage(uri: string) {
   if (!uri.startsWith(mediaDirectory)) return;
   await FileSystem.deleteAsync(uri, { idempotent: true });
 }
+
+export async function removeAllJournalImages() {
+  if (!__DEV__) throw new Error('Photo reset is only available in development.');
+  await FileSystem.deleteAsync(mediaDirectory, { idempotent: true });
+}

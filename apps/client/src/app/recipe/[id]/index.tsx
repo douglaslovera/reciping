@@ -35,7 +35,7 @@ import type { CookingLog, Recipe, Variation } from '@/db/types';
 import { useAppTheme } from '@/theme';
 
 export default function RecipeDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, firstSaved } = useLocalSearchParams<{ id: string; firstSaved?: string }>();
   const router = useRouter();
   const theme = useAppTheme();
   const { refresh, settings } = useDatabaseContext();
@@ -120,6 +120,9 @@ export default function RecipeDetailScreen() {
       }
       subtitle={`Updated ${formatDate(recipe.updatedAt)}`}
       title={recipe.title}>
+      {firstSaved && <Text accessibilityLiveRegion="polite" style={{ color: theme.accent, fontSize: 14, fontWeight: '600' }}>
+        {firstSaved === 'draft' ? 'Your first draft is saved' : 'Your first recipe is saved'}
+      </Text>}
       {recipe.coverUri ? <Image source={{ uri: recipe.coverUri }} style={styles.cover} /> : null}
       {recipe.summary ? <Text style={[styles.summary, { color: theme.muted }]}>{recipe.summary}</Text> : null}
       <PrimaryButton icon="flame-outline" label="Start cooking session" onPress={() => startCooking()} />
@@ -268,18 +271,18 @@ function money(amount: number, currency: string | null | undefined, language: 'e
 }
 
 const styles = StyleSheet.create({
-  cover: { borderRadius: 26, height: 250, width: '100%' },
+  cover: { borderRadius: 10, height: 220, width: '100%' },
   summary: { fontSize: 16, lineHeight: 23 },
   stats: { flexDirection: 'row', gap: 8 },
-  stat: { alignItems: 'center', borderRadius: 18, flex: 1, gap: 4, paddingHorizontal: 6, paddingVertical: 12 },
+  stat: { alignItems: 'center', borderRadius: 9, flex: 1, gap: 4, paddingHorizontal: 6, paddingVertical: 10 },
   statValue: { fontSize: 13, fontWeight: '700', textAlign: 'center' },
   statLabel: { fontSize: 10, textAlign: 'center' },
   costNote: { fontSize: 12, marginTop: -10, textAlign: 'right' },
-  ingredient: { alignItems: 'flex-start', borderRadius: 17, flexDirection: 'row', gap: 12, padding: 13 },
-  amount: { fontSize: 14, fontWeight: '700', minWidth: 66 },
+  ingredient: { alignItems: 'flex-start', borderRadius: 8, flexDirection: 'row', gap: 10, padding: 10 },
+  amount: { fontSize: 12, fontWeight: '700', minWidth: 62 },
   ingredientCopy: { flex: 1, gap: 3 },
-  ingredientName: { fontSize: 15, fontWeight: '600' },
-  preparation: { fontSize: 12 },
+  ingredientName: { fontSize: 13, fontWeight: '600' },
+  preparation: { fontSize: 10 },
   muted: { fontSize: 14, lineHeight: 20 },
   rowLink: { alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 12, minHeight: 58, paddingVertical: 9 },
   flex: { flex: 1 },

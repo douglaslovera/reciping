@@ -90,6 +90,17 @@ async function hydrateRecipes(rows: (typeof recipes.$inferSelect)[]): Promise<Re
   }));
 }
 
+// Include deleted content so an emptied collection does not become a first visit again.
+export async function isNewCollection() {
+  const database = getDatabase();
+  const [recipe, log, saved] = await Promise.all([
+    database.select({ id: recipes.id }).from(recipes).limit(1),
+    database.select({ id: cookingLogs.id }).from(cookingLogs).limit(1),
+    database.select({ id: savedItems.id }).from(savedItems).limit(1),
+  ]);
+  return recipe.length === 0 && log.length === 0 && saved.length === 0;
+}
+
 export async function listRecipes(options?: { deleted?: boolean; drafts?: boolean }) {
   const database = getDatabase();
   const filters = [

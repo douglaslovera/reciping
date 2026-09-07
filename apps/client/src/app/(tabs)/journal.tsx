@@ -5,7 +5,7 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 
 import { GlassSurface } from '@/components/glass-surface';
 import { Text } from '@/components/localized-text';
-import { EmptyState, PrimaryButton } from '@/components/ui';
+import { EmptyState, LoadingState, PrimaryButton } from '@/components/ui';
 import { ScreenShell } from '@/components/screen-shell';
 import { useDatabaseContext, useDataQuery } from '@/db/provider';
 import { listCookingLogs } from '@/db/repository';
@@ -17,7 +17,7 @@ type Filter = 'all' | 'active' | 'make-again';
 export default function JournalScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const { data: logs, loading } = useDataQuery(() => listCookingLogs(), [] as CookingLog[]);
+  const { data: logs, loading, error } = useDataQuery(() => listCookingLogs(), [] as CookingLog[]);
   const [filter, setFilter] = useState<Filter>('all');
   const visible = useMemo(
     () =>
@@ -31,10 +31,9 @@ export default function JournalScreen() {
 
   return (
     <ScreenShell
-      eyebrow="COOKING HISTORY"
       onMenuPress={() => router.push('/settings')}
       title="Journal">
-      <View style={styles.filters}>
+      {logs.length > 0 && <View style={styles.filters}>
         {([
           ['all', 'All'],
           ['active', 'Active'],
@@ -52,9 +51,11 @@ export default function JournalScreen() {
             </Text>
           </Pressable>
         ))}
-      </View>
+      </View>}
 
-      {logs.length ? (
+      {loading ? <LoadingState /> : error ? (
+        <EmptyState icon="alert-circle-outline" title="Could not load content" message="Try opening this tab again." />
+      ) : logs.length ? (
         <View style={styles.listArea}>
           <View style={styles.actions}>
             <Pressable onPress={() => router.push('/session/new')}>
@@ -67,6 +68,9 @@ export default function JournalScreen() {
           <FlatList
             contentContainerStyle={styles.list}
             data={visible}
+            ListEmptyComponent={<EmptyState icon="search-outline" title="No matching items"
+              message="Try another search or clear your filters."
+              action={<PrimaryButton label="Clear filters" onPress={() => { setFilter('all'); }} />} />}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => <LogCard log={item} onPress={() => router.push(`/session/${item.id}`)} />}
             showsVerticalScrollIndicator={false}
@@ -87,9 +91,9 @@ export default function JournalScreen() {
                 </Pressable>
               </View>
             }
-            icon={loading ? 'hourglass-outline' : 'sparkles-outline'}
-            message="Each session keeps its recipe snapshot, changes, notes, rating, photos, and costs together."
-            title={loading ? 'Opening your journal…' : 'Your cooking story begins here'}
+            icon="sparkles-outline"
+            message="Keep notes on what worked and what you would change."
+            title="Remember what you cooked"
           />
         </View>
       )}
@@ -160,19 +164,19 @@ function money(amount: number, currency: string | null, language: 'en' | 'es') {
 
 const styles = StyleSheet.create({
   filters: { flexDirection: 'row', gap: 5, marginBottom: 8 },
-  filter: { borderRadius: 15, paddingHorizontal: 13, paddingVertical: 9 },
-  filterText: { fontSize: 13, fontWeight: '700' },
+  filter: { borderRadius: 5, paddingHorizontal: 10, paddingVertical: 6 },
+  filterText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' },
   listArea: { flex: 1 },
   actions: { flexDirection: 'row', gap: 18, justifyContent: 'flex-end', paddingVertical: 10 },
   actionLink: { fontSize: 13, fontWeight: '700' },
-  list: { gap: 10, paddingBottom: 120 },
-  card: { alignItems: 'center', borderRadius: 22, flexDirection: 'row', gap: 12, minHeight: 84, padding: 13 },
-  cardIcon: { alignItems: 'center', borderRadius: 16, height: 48, justifyContent: 'center', width: 48 },
+  list: { gap: 7, paddingBottom: 120 },
+  card: { alignItems: 'center', borderRadius: 10, flexDirection: 'row', gap: 10, minHeight: 72, padding: 9 },
+  cardIcon: { alignItems: 'center', borderRadius: 8, height: 46, justifyContent: 'center', width: 46 },
   flex: { flex: 1 },
   cardTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 7 },
-  cardTitle: { flex: 1, fontSize: 16, fontWeight: '700' },
+  cardTitle: { flex: 1, fontSize: 14, fontWeight: '700' },
   active: { fontSize: 9, fontWeight: '800', letterSpacing: 0.6 },
-  meta: { fontSize: 12, lineHeight: 17 },
+  meta: { fontSize: 10, lineHeight: 15 },
   emptyArea: { flex: 1, justifyContent: 'center', paddingBottom: 35 },
   emptyActions: { gap: 13, marginTop: 7, width: 210 },
   pastLink: { fontSize: 14, fontWeight: '600', textAlign: 'center' },

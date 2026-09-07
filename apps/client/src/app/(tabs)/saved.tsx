@@ -6,7 +6,7 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { GlassSearch } from '@/components/glass-search';
 import { GlassSurface } from '@/components/glass-surface';
 import { Text } from '@/components/localized-text';
-import { EmptyState, PrimaryButton } from '@/components/ui';
+import { EmptyState, LoadingState, PrimaryButton } from '@/components/ui';
 import { ScreenShell } from '@/components/screen-shell';
 import { useDataQuery } from '@/db/provider';
 import { listSavedItems } from '@/db/repository';
@@ -18,7 +18,7 @@ type Filter = 'all' | SavedItem['kind'];
 export default function SavedScreen() {
   const theme = useAppTheme();
   const router = useRouter();
-  const { data: items, loading } = useDataQuery(() => listSavedItems(), [] as SavedItem[]);
+  const { data: items, loading, error } = useDataQuery(() => listSavedItems(), [] as SavedItem[]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const visible = useMemo(() => {
@@ -34,11 +34,10 @@ export default function SavedScreen() {
 
   return (
     <ScreenShell
-      eyebrow="TECHNIQUES & IDEAS"
       onMenuPress={() => router.push('/settings')}
       title="Saved">
-      <GlassSearch onChangeText={setSearch} placeholder="Search saved items" value={search} />
-      <View style={styles.chips}>
+      {items.length > 0 && <GlassSearch onChangeText={setSearch} placeholder="Search saved items" value={search} />}
+      {items.length > 0 && <View style={styles.chips}>
         {([
           ['all', 'All'],
           ['video', 'Videos'],
@@ -57,9 +56,11 @@ export default function SavedScreen() {
             </Text>
           </Pressable>
         ))}
-      </View>
+      </View>}
 
-      {items.length ? (
+      {loading ? <LoadingState /> : error ? (
+        <EmptyState icon="alert-circle-outline" title="Could not load content" message="Try opening this tab again." />
+      ) : items.length ? (
         <View style={styles.listArea}>
           <Pressable onPress={() => router.push('/saved/new')} style={styles.add}>
             <Ionicons color={theme.accent} name="add" size={18} />
@@ -68,6 +69,9 @@ export default function SavedScreen() {
           <FlatList
             contentContainerStyle={styles.list}
             data={visible}
+            ListEmptyComponent={<EmptyState icon="search-outline" title="No matching items"
+              message="Try another search or clear your filters."
+              action={<PrimaryButton label="Clear filters" onPress={() => { setSearch(''); setFilter('all'); }} />} />}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <Pressable onPress={() => router.push(`/saved/${item.id}`)}>
@@ -99,9 +103,9 @@ export default function SavedScreen() {
             action={
               <PrimaryButton icon="add" label="Save something" onPress={() => router.push('/saved/new')} />
             }
-            icon={loading ? 'hourglass-outline' : 'bulb-outline'}
-            message="Keep video links, articles, and personal cooking tips without turning them into recipes."
-            title={loading ? 'Opening saved items…' : 'A place for useful discoveries'}
+            icon="bulb-outline"
+            message="Keep a video, article, or cooking tip here."
+            title="Save something for later"
           />
         </View>
       )}
@@ -111,16 +115,16 @@ export default function SavedScreen() {
 
 const styles = StyleSheet.create({
   chips: { flexDirection: 'row', gap: 3, marginTop: 10 },
-  chip: { borderRadius: 14, paddingHorizontal: 11, paddingVertical: 8 },
-  chipText: { fontSize: 12, fontWeight: '700' },
+  chip: { borderRadius: 5, paddingHorizontal: 10, paddingVertical: 6 },
+  chipText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' },
   listArea: { flex: 1 },
   add: { alignItems: 'center', alignSelf: 'flex-end', flexDirection: 'row', gap: 3, paddingVertical: 12 },
   addText: { fontSize: 13, fontWeight: '700' },
-  list: { gap: 10, paddingBottom: 120 },
-  card: { alignItems: 'center', borderRadius: 22, flexDirection: 'row', gap: 12, minHeight: 78, padding: 13 },
-  icon: { alignItems: 'center', borderRadius: 16, height: 46, justifyContent: 'center', width: 46 },
+  list: { gap: 7, paddingBottom: 120 },
+  card: { alignItems: 'center', borderRadius: 10, flexDirection: 'row', gap: 10, minHeight: 68, padding: 9 },
+  icon: { alignItems: 'center', borderRadius: 8, height: 46, justifyContent: 'center', width: 46 },
   flex: { flex: 1 },
-  title: { fontSize: 16, fontWeight: '700', lineHeight: 20 },
-  meta: { fontSize: 12, marginTop: 4, textTransform: 'capitalize' },
+  title: { fontSize: 14, fontWeight: '700', lineHeight: 18 },
+  meta: { fontSize: 10, marginTop: 3, textTransform: 'capitalize' },
   emptyArea: { flex: 1, justifyContent: 'center', paddingBottom: 35 },
 });

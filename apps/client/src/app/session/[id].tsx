@@ -103,6 +103,8 @@ function SessionEditor({ initial, active }: { initial: CookingLog; active: boole
     log.snapshot.servings && log.servings ? log.servings / log.snapshot.servings : 1;
 
   useEffect(() => {
+    // The editor must reset when the route loader returns a newer log snapshot.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLog(initial);
     setQuickCostAmount(initial.costTotal?.toString() ?? '');
   }, [initial]);

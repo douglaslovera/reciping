@@ -27,7 +27,10 @@ export function GlassSurface({
 }: GlassSurfaceProps) {
   const theme = useAppTheme();
   const nativeGlassAvailable =
-    Platform.OS === 'ios' && isLiquidGlassAvailable() && isGlassEffectAPIAvailable();
+    Platform.OS === 'ios' &&
+    isLiquidGlassAvailable() &&
+    isGlassEffectAPIAvailable() &&
+    Boolean(tintColor);
 
   if (nativeGlassAvailable) {
     return (

@@ -5,7 +5,6 @@ import { useColorScheme } from 'react-native';
 import 'react-native-reanimated';
 
 import { DatabaseProvider } from '@/db/provider';
-import { WelcomeGate } from '@/components/welcome-gate';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -26,8 +25,7 @@ export default function RootLayout() {
           <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
           <Stack.Screen name="deleted" />
         </Stack>
-        <WelcomeGate />
-        <StatusBar style="auto" />
+        <StatusBar style="light" />
       </DatabaseProvider>
     </ThemeProvider>
   );

@@ -1,11 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { GlassSurface } from '@/components/glass-surface';
 import { Text } from '@/components/localized-text';
-import { Field, IconButton, Page, Section } from '@/components/ui';
+import { Field, IconButton, Page, PrimaryButton, Section } from '@/components/ui';
 import { useDatabaseContext } from '@/db/provider';
+import { resetAppDataForDevelopment } from '@/db/reset';
+import { translate } from '@/i18n';
 import { setSetting } from '@/db/repository';
 import type { AppSettings } from '@/db/types';
 import { useAppTheme } from '@/theme';
@@ -14,6 +17,43 @@ export default function SettingsScreen() {
   const router = useRouter();
   const theme = useAppTheme();
   const { refresh, settings } = useDatabaseContext();
+  const [resetting, setResetting] = useState(false);
+  const resetInProgress = useRef(false);
+
+  const resetData = async () => {
+    if (!__DEV__ || Platform.OS === 'web' || resetInProgress.current) return;
+    resetInProgress.current = true;
+    setResetting(true);
+    try {
+      const { photosRemoved } = await resetAppDataForDevelopment();
+      refresh();
+      router.dismissAll();
+      router.replace('/');
+      if (!photosRemoved) {
+        Alert.alert(
+          translate(settings.language, 'Content reset'),
+          translate(settings.language, 'Your content and settings were cleared, but some local photos could not be removed. Run reset again to retry photo cleanup.'),
+        );
+      }
+    } catch {
+      Alert.alert(
+        translate(settings.language, 'Could not reset app data'),
+        translate(settings.language, 'Try again.'),
+      );
+    } finally {
+      resetInProgress.current = false;
+      setResetting(false);
+    }
+  };
+
+  const confirmReset = () => Alert.alert(
+    translate(settings.language, 'Reset app data?'),
+    translate(settings.language, 'Permanently delete all recipes, cooking logs, saved items, local photos, and settings, including Recently Deleted. This cannot be undone.'),
+    [
+      { text: translate(settings.language, 'Cancel'), style: 'cancel' },
+      { text: translate(settings.language, 'Reset app data'), style: 'destructive', onPress: () => { void resetData(); } },
+    ],
+  );
 
   const choose = async <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
     await setSetting(key, value);
@@ -27,8 +67,11 @@ export default function SettingsScreen() {
     );
 
   return (
-    <Page left={<IconButton icon="close" label="Close" onPress={router.back} />} title="Settings">
-      <Section title="Your data">
+    <Page
+      contentStyle={styles.settingsContent}
+      left={<IconButton icon="close" label="Close" onPress={router.back} />}
+      title="Settings">
+      <Section style={styles.settingsSection} title="Your data">
         <GlassSurface effect="regular" style={styles.dataCard}>
           <View style={[styles.dataIcon, { backgroundColor: theme.accentSoft }]}>
             <Ionicons color={theme.accent} name="phone-portrait-outline" size={24} />
@@ -53,7 +96,7 @@ export default function SettingsScreen() {
         </Text>
       </Section>
 
-      <Section title="Recipe book">
+      <Section style={styles.settingsSection} title="Recipe book">
         <ChoiceRow
           label="Library layout"
           options={[
@@ -74,7 +117,7 @@ export default function SettingsScreen() {
         />
       </Section>
 
-      <Section title="Reading">
+      <Section style={styles.settingsSection} title="Reading">
         <ChoiceRow
           label="Text size"
           options={[
@@ -99,7 +142,7 @@ export default function SettingsScreen() {
         </Text>
       </Section>
 
-      <Section title="Storage">
+      <Section style={styles.settingsSection} title="Storage">
         <Pressable onPress={() => router.push('/deleted')} style={[styles.row, { borderColor: theme.border }]}>
           <Ionicons color={theme.muted} name="trash-outline" size={22} />
           <View style={styles.flex}>
@@ -110,6 +153,20 @@ export default function SettingsScreen() {
         </Pressable>
       </Section>
 
+      {__DEV__ && Platform.OS !== 'web' && (
+        <Section style={styles.settingsSection} title="Developer">
+          <Text style={[styles.privacy, { color: theme.muted }]}>
+            Clear this app and return to first-time onboarding. Only available in development builds.
+          </Text>
+          <PrimaryButton
+            destructive
+            disabled={resetting}
+            icon="refresh-outline"
+            label={resetting ? 'Resetting…' : 'Reset app data'}
+            onPress={confirmReset}
+          />
+        </Section>
+      )}
     </Page>
   );
 }
@@ -151,16 +208,18 @@ function ChoiceRow({
 }
 
 const styles = StyleSheet.create({
-  dataCard: { alignItems: 'center', borderRadius: 21, flexDirection: 'row', gap: 13, padding: 15 },
+  settingsContent: { gap: 26, paddingTop: 6 },
+  settingsSection: { gap: 14 },
+  dataCard: { alignItems: 'center', borderRadius: 21, flexDirection: 'row', gap: 16, padding: 18 },
   dataIcon: { alignItems: 'center', borderRadius: 17, height: 49, justifyContent: 'center', width: 49 },
   flex: { flex: 1 },
   cardTitle: { fontSize: 16, fontWeight: '700' },
-  cardCopy: { fontSize: 12, lineHeight: 17, marginTop: 3 },
-  row: { alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 12, minHeight: 64, paddingVertical: 9 },
+  cardCopy: { fontSize: 12, lineHeight: 18, marginTop: 6 },
+  row: { alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 14, minHeight: 72, paddingVertical: 13 },
   rowTitle: { fontSize: 15, fontWeight: '600' },
-  rowMeta: { fontSize: 12, lineHeight: 17, marginTop: 2 },
-  privacy: { fontSize: 12, lineHeight: 18 },
-  choiceGroup: { gap: 8 },
+  rowMeta: { fontSize: 12, lineHeight: 18, marginTop: 4 },
+  privacy: { fontSize: 12, lineHeight: 19 },
+  choiceGroup: { gap: 12 },
   choiceLabel: { fontSize: 14, fontWeight: '600' },
   choices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   choice: { borderRadius: 15, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 13, paddingVertical: 10 },

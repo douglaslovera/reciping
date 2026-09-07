@@ -8,17 +8,16 @@ import { Text } from '@/components/localized-text';
 import { useAppTheme } from '@/theme';
 
 type ScreenShellProps = PropsWithChildren<{
-  eyebrow: string;
   title: string;
   onMenuPress?: () => void;
   trailing?: React.ReactNode;
 }>;
 
-export function ScreenShell({ children, eyebrow, title, onMenuPress, trailing }: ScreenShellProps) {
+export function ScreenShell({ children, title, onMenuPress, trailing }: ScreenShellProps) {
   const theme = useAppTheme();
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.background }]}>
+    <View style={[styles.screen, { backgroundColor: theme.chrome }]}>
       <View
         pointerEvents="none"
         style={[styles.bloom, styles.skyBloom, { backgroundColor: theme.bloomSky }]}
@@ -35,8 +34,7 @@ export function ScreenShell({ children, eyebrow, title, onMenuPress, trailing }:
       <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
         <View style={styles.header}>
           <View style={styles.titleGroup}>
-            <Text style={[styles.eyebrow, { color: theme.accent }]}>{eyebrow}</Text>
-            <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
+            <Text style={[styles.title, { color: '#F7F5F6' }]}>{title}</Text>
           </View>
           {trailing ?? <GlassSurface effect="clear" interactive style={styles.menuGlass}>
             <Pressable
@@ -45,11 +43,11 @@ export function ScreenShell({ children, eyebrow, title, onMenuPress, trailing }:
               hitSlop={8}
               onPress={onMenuPress}
               style={styles.menuButton}>
-              <Ionicons color={theme.text} name="ellipsis-horizontal" size={23} />
+              <Ionicons color="#F7F5F6" name="ellipsis-horizontal" size={19} />
             </Pressable>
           </GlassSurface>}
         </View>
-        {children}
+        <View style={[styles.body, { backgroundColor: theme.background }]}>{children}</View>
       </SafeAreaView>
     </View>
   );
@@ -61,7 +59,6 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-    paddingHorizontal: 20,
   },
   bloom: {
     borderRadius: 999,
@@ -89,31 +86,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingBottom: 18,
-    paddingTop: 14,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    paddingTop: 8,
   },
   titleGroup: {
-    gap: 3,
-  },
-  eyebrow: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.45,
+    justifyContent: 'center',
   },
   title: {
-    fontSize: 36,
-    fontWeight: '700',
-    letterSpacing: -1.2,
+    fontSize: 30,
+    fontWeight: '800',
+    letterSpacing: -1,
   },
   menuGlass: {
-    borderRadius: 22,
-    height: 44,
-    width: 44,
+    backgroundColor: '#2A2B30',
+    borderRadius: 9,
+    height: 32,
+    width: 32,
   },
   menuButton: {
     alignItems: 'center',
     height: '100%',
     justifyContent: 'center',
     width: '100%',
+  },
+  body: {
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    flex: 1,
+    overflow: 'hidden',
+    paddingHorizontal: 20,
+    paddingTop: 12,
   },
 });

@@ -15,7 +15,7 @@ import {
   Section,
 } from '@/components/ui';
 import { useDatabaseContext } from '@/db/provider';
-import { getRecipe, saveRecipe } from '@/db/repository';
+import { getRecipe, isNewCollection, saveRecipe } from '@/db/repository';
 import type { IngredientInput, RecipeInput } from '@/db/types';
 import { translate } from '@/i18n';
 import { persistJournalImage } from '@/media-storage';
@@ -36,6 +36,7 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
   const ingredientNameRefs = useRef<(TextInput | null)[]>([]);
   const pendingIngredientFocus = useRef<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showDetails, setShowDetails] = useState(Boolean(id));
   const [title, setTitle] = useState('');
   const [summary, setSummary] = useState('');
   const [body, setBody] = useState('');
@@ -108,8 +109,10 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
   };
 
   const save = async (status: RecipeInput['status']) => {
+    if (saving) return;
     setSaving(true);
     try {
+      const firstRecipe = !id && await isNewCollection();
       const recipeId = await saveRecipe(
         {
           title,
@@ -130,7 +133,7 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
       );
       refresh();
       router.dismissAll();
-      router.replace(`/recipe/${recipeId}`);
+      router.replace({ pathname: '/recipe/[id]', params: { id: recipeId, ...(firstRecipe ? { firstSaved: status } : {}) } });
     } catch {
       Alert.alert(
         translate(settings.language, 'Could not save recipe'),
@@ -141,6 +144,18 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
     }
   };
 
+  const preparation = (
+    <Section title={pasteMode ? 'Original text or preparation' : 'Preparation'}>
+      <Field
+        label={pasteMode ? 'Paste here, then edit freely' : 'Steps and notes'}
+        multiline
+        onChangeText={setBody}
+        placeholder={'## Preparation\n1. Heat the pan…'}
+        value={body}
+      />
+    </Section>
+  );
+
   return (
     <Page
       left={<IconButton icon="close" label="Close" onPress={() => router.back()} />}
@@ -150,13 +165,6 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
         </Pressable>
       }
       title={id ? 'Edit recipe' : 'New recipe'}>
-      {coverUri ? <Image source={{ uri: coverUri }} style={styles.cover} /> : null}
-      <SecondaryButton
-        icon="image-outline"
-        label={coverUri ? 'Change cover photo' : 'Add cover photo'}
-        onPress={pickCover}
-      />
-
       <Section title="Recipe">
         <Field
           autoFocus={!id}
@@ -165,55 +173,10 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
           placeholder="Grandma’s tomato pasta"
           value={title}
         />
-        <Field
-          label="Short description"
-          multiline
-          onChangeText={setSummary}
-          placeholder="What makes this recipe worth keeping?"
-          value={summary}
-        />
-        <View style={styles.row}>
-          <View style={styles.flex}>
-            <Field
-              keyboardType="decimal-pad"
-              label="Makes"
-              onChangeText={setServings}
-              placeholder="4"
-              value={servings}
-            />
-          </View>
-          <View style={styles.flex}>
-            <Field
-              label="Serving unit"
-              onChangeText={setServingUnit}
-              placeholder="servings"
-              value={servingUnit}
-            />
-          </View>
-        </View>
-        <View style={styles.row}>
-          <View style={styles.flex}>
-            <Field
-              keyboardType="number-pad"
-              label="Prep minutes"
-              onChangeText={setPrepMinutes}
-              placeholder="15"
-              value={prepMinutes}
-            />
-          </View>
-          <View style={styles.flex}>
-            <Field
-              keyboardType="number-pad"
-              label="Cook minutes"
-              onChangeText={setCookMinutes}
-              placeholder="30"
-              value={cookMinutes}
-            />
-          </View>
-        </View>
       </Section>
 
-      <Section title="Ingredients">
+      {pasteMode && preparation}
+      <Section title={pasteMode ? 'Ingredients (optional)' : 'Ingredients'}>
         {ingredients.map((ingredient, index) => (
           <GlassSurface effect="clear" key={ingredient.id ?? index} style={styles.ingredientCard}>
             <View style={styles.ingredientHeader}>
@@ -271,39 +234,95 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
         <SecondaryButton icon="add" label="Add ingredient" onPress={addIngredient} />
       </Section>
 
-      <Section title={pasteMode ? 'Original text or preparation' : 'Preparation'}>
-        <Field
-          label={pasteMode ? 'Paste here, then edit freely' : 'Steps and notes'}
-          multiline
-          onChangeText={setBody}
-          placeholder={'## Preparation\n1. Heat the pan…'}
-          value={body}
-        />
-      </Section>
+      {!pasteMode && preparation}
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: showDetails }}
+        onPress={() => setShowDetails((value) => !value)} style={styles.detailsToggle}>
+        <Text style={{ color: theme.accent, fontWeight: '600' }}>{showDetails ? 'Hide details' : 'Add more details'}</Text>
+        <Ionicons name={showDetails ? 'chevron-up' : 'chevron-down'} color={theme.accent} size={18} />
+      </Pressable>
+      {showDetails && (
+        <>
+          {coverUri ? <Image source={{ uri: coverUri }} style={styles.cover} /> : null}
+          <SecondaryButton
+            icon="image-outline"
+            label={coverUri ? 'Change cover photo' : 'Add cover photo'}
+            onPress={pickCover}
+          />
 
-      <Section title="Organization & source">
-        <Field
-          hint="Separate categories with commas."
-          label="Categories"
-          onChangeText={setCategories}
-          placeholder="Dinner, Pasta, Weeknight"
-          value={categories}
-        />
-        <Field
-          label="Source name"
-          onChangeText={setSourceName}
-          placeholder="Family notebook"
-          value={sourceName}
-        />
-        <Field
-          autoCapitalize="none"
-          keyboardType="url"
-          label="Source link"
-          onChangeText={setSourceUrl}
-          placeholder="https://…"
-          value={sourceUrl}
-        />
-      </Section>
+          <Section title="Details">
+            <Field
+              label="Short description"
+              multiline
+              onChangeText={setSummary}
+              placeholder="What makes this recipe worth keeping?"
+              value={summary}
+            />
+            <View style={styles.row}>
+              <View style={styles.flex}>
+                <Field
+                  keyboardType="decimal-pad"
+                  label="Makes"
+                  onChangeText={setServings}
+                  placeholder="4"
+                  value={servings}
+                />
+              </View>
+              <View style={styles.flex}>
+                <Field
+                  label="Serving unit"
+                  onChangeText={setServingUnit}
+                  placeholder="servings"
+                  value={servingUnit}
+                />
+              </View>
+            </View>
+            <View style={styles.row}>
+              <View style={styles.flex}>
+                <Field
+                  keyboardType="number-pad"
+                  label="Prep minutes"
+                  onChangeText={setPrepMinutes}
+                  placeholder="15"
+                  value={prepMinutes}
+                />
+              </View>
+              <View style={styles.flex}>
+                <Field
+                  keyboardType="number-pad"
+                  label="Cook minutes"
+                  onChangeText={setCookMinutes}
+                  placeholder="30"
+                  value={cookMinutes}
+                />
+              </View>
+            </View>
+          </Section>
+          <Section title="Organization & source">
+            <Field
+              hint="Separate categories with commas."
+              label="Categories"
+              onChangeText={setCategories}
+              placeholder="Dinner, Pasta, Weeknight"
+              value={categories}
+            />
+            <Field
+              label="Source name"
+              onChangeText={setSourceName}
+              placeholder="Family notebook"
+              value={sourceName}
+            />
+            <Field
+              autoCapitalize="none"
+              keyboardType="url"
+              label="Source link"
+              onChangeText={setSourceUrl}
+              placeholder="https://…"
+              value={sourceUrl}
+            />
+          </Section>
+
+        </>
+      )}
 
       <View style={styles.bottomActions}>
         <PrimaryButton
@@ -315,7 +334,7 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
         <SecondaryButton
           icon="document-outline"
           label="Save as draft"
-          onPress={() => save('draft')}
+          onPress={() => { if (!saving) void save('draft'); }}
         />
       </View>
     </Page>
@@ -323,6 +342,7 @@ export function RecipeEditor({ id, pasteMode }: { id?: string; pasteMode?: boole
 }
 
 const styles = StyleSheet.create({
+  detailsToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 48, paddingVertical: 12 },
   saveText: { fontSize: 16, fontWeight: '700', padding: 9 },
   cover: { borderRadius: 24, height: 210, width: '100%' },
   row: { flexDirection: 'row', gap: 12 },

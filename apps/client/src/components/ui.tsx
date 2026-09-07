@@ -25,27 +25,33 @@ export function Page({
   subtitle,
   left,
   right,
+  contentStyle,
   scroll = true,
 }: PropsWithChildren<{
   title: string;
   subtitle?: string;
   left?: ReactNode;
   right?: ReactNode;
+  contentStyle?: ViewStyle;
   scroll?: boolean;
 }>) {
   const theme = useAppTheme();
-  const content = <View style={styles.pageContent}>{children}</View>;
+  const content = (
+    <View style={[styles.pageContent, !scroll && styles.pageContentFixed, contentStyle]}>
+      {children}
+    </View>
+  );
   return (
-    <View style={[styles.page, { backgroundColor: theme.background }]}>
+    <View style={[styles.page, { backgroundColor: theme.chrome }]}>
       <SafeAreaView edges={['top', 'left', 'right']} style={styles.safe}>
-        <View style={styles.nav}>
+        <View style={[styles.nav, { backgroundColor: theme.chrome }]}>
           <View style={styles.navSide}>{left}</View>
           <View style={styles.navTitleWrap}>
-            <Text numberOfLines={1} style={[styles.navTitle, { color: theme.text }]}>
+            <Text numberOfLines={2} style={[styles.navTitle, { color: '#F7F5F6' }]}>
               {title}
             </Text>
             {subtitle ? (
-              <Text numberOfLines={1} style={[styles.navSubtitle, { color: theme.muted }]}>
+              <Text numberOfLines={1} style={[styles.navSubtitle, { color: theme.chromeMuted }]}>
                 {subtitle}
               </Text>
             ) : null}
@@ -54,6 +60,7 @@ export function Page({
         </View>
         {scroll ? (
           <ScrollView
+            style={[styles.contentSurface, { backgroundColor: theme.background }]}
             automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
             contentContainerStyle={styles.scrollContent}
             keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
@@ -62,7 +69,7 @@ export function Page({
             {content}
           </ScrollView>
         ) : (
-          content
+          <View style={[styles.contentSurface, { backgroundColor: theme.background }]}>{content}</View>
         )}
       </SafeAreaView>
     </View>
@@ -80,7 +87,6 @@ export function IconButton({
   onPress: () => void;
   color?: string;
 }) {
-  const theme = useAppTheme();
   return (
     <GlassSurface effect="clear" interactive style={styles.iconGlass}>
       <Pressable
@@ -89,7 +95,7 @@ export function IconButton({
         hitSlop={8}
         onPress={onPress}
         style={styles.iconButton}>
-        <Ionicons color={color ?? theme.text} name={icon} size={22} />
+        <Ionicons color={color ?? '#F7F5F6'} name={icon} size={22} />
       </Pressable>
     </GlassSurface>
   );
@@ -242,29 +248,31 @@ const styles = StyleSheet.create({
   nav: {
     alignItems: 'center',
     flexDirection: 'row',
-    minHeight: 60,
+    minHeight: 66,
     paddingHorizontal: 16,
   },
   navSide: { alignItems: 'flex-start', minWidth: 48 },
   navRight: { alignItems: 'flex-end' },
   navTitleWrap: { alignItems: 'center', flex: 1 },
-  navTitle: { fontSize: 17, fontWeight: '700', maxWidth: 240 },
-  navSubtitle: { fontSize: 11, marginTop: 2 },
-  pageContent: { flex: 1, gap: 20 },
-  scrollContent: { padding: 20, paddingBottom: 60 },
-  iconGlass: { borderRadius: 20, height: 40, width: 40 },
+  navTitle: { fontSize: 20, fontWeight: '800', lineHeight: 22, maxWidth: 240 },
+  navSubtitle: { fontSize: 9, marginTop: 2 },
+  contentSurface: { borderTopLeftRadius: 16, borderTopRightRadius: 16, overflow: 'hidden' },
+  pageContent: { flexGrow: 1, flexShrink: 0, gap: 14 },
+  pageContentFixed: { flex: 1 },
+  scrollContent: { flexGrow: 1, padding: 14, paddingBottom: 72 },
+  iconGlass: { backgroundColor: '#2A2B30', borderRadius: 9, height: 34, width: 34 },
   iconButton: { alignItems: 'center', flex: 1, justifyContent: 'center' },
   primary: {
     alignItems: 'center',
-    borderRadius: 17,
+    borderRadius: 9,
     flexDirection: 'row',
     gap: 8,
     justifyContent: 'center',
-    minHeight: 50,
+    minHeight: 48,
     paddingHorizontal: 20,
   },
-  primaryText: { color: 'white', fontSize: 16, fontWeight: '700' },
-  secondaryGlass: { borderRadius: 17, minHeight: 46 },
+  primaryText: { color: 'white', fontSize: 14, fontWeight: '700' },
+  secondaryGlass: { borderRadius: 9, minHeight: 46 },
   secondary: {
     alignItems: 'center',
     flex: 1,
@@ -277,7 +285,7 @@ const styles = StyleSheet.create({
   field: { gap: 7 },
   fieldLabel: { fontSize: 14, fontWeight: '600' },
   input: {
-    borderRadius: 15,
+    borderRadius: 9,
     borderWidth: StyleSheet.hairlineWidth,
     minHeight: 48,
     paddingHorizontal: 14,
@@ -285,16 +293,16 @@ const styles = StyleSheet.create({
   },
   multiline: { minHeight: 112, textAlignVertical: 'top' },
   hint: { fontSize: 12, lineHeight: 17 },
-  section: { gap: 12 },
+  section: { gap: 7 },
   sectionHeader: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  sectionTitle: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
+  sectionTitle: { fontSize: 10, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
   empty: {
     alignItems: 'center',
-    borderRadius: 28,
+    borderRadius: 12,
     gap: 9,
     paddingHorizontal: 27,
     paddingVertical: 31,

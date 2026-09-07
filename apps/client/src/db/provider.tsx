@@ -103,6 +103,8 @@ export function useDataQuery<T>(loader: () => Promise<T>, fallback: T, keys: unk
 
   useEffect(() => {
     if (!ready || Platform.OS === 'web') {
+      // Web uses the synchronous fallback; native queries wait for database readiness.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);
       return;
     }

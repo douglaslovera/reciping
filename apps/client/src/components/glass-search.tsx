@@ -36,8 +36,8 @@ export function GlassSearch({ placeholder, value, onChangeText, onFilterPress }:
           disabled={!onFilterPress}
           hitSlop={7}
           onPress={onFilterPress}
-          style={[styles.filter, { backgroundColor: theme.accentSoft }]}>
-          <Ionicons color={theme.accent} name="options-outline" size={17} />
+          style={[styles.filter, { backgroundColor: theme.accent }]}>
+          <Ionicons color="white" name="options-outline" size={15} />
         </Pressable>
       </View>
     </GlassSurface>
@@ -46,27 +46,27 @@ export function GlassSearch({ placeholder, value, onChangeText, onFilterPress }:
 
 const styles = StyleSheet.create({
   search: {
-    borderRadius: 19,
-    height: 52,
+    borderRadius: 10,
+    height: 44,
   },
   searchButton: {
     alignItems: 'center',
     flex: 1,
     flexDirection: 'row',
-    gap: 10,
-    paddingLeft: 16,
-    paddingRight: 8,
+    gap: 8,
+    paddingLeft: 13,
+    paddingRight: 6,
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 13,
     paddingVertical: 10,
   },
   filter: {
     alignItems: 'center',
-    borderRadius: 15,
-    height: 36,
+    borderRadius: 8,
+    height: 32,
     justifyContent: 'center',
-    width: 36,
+    width: 32,
   },
 });

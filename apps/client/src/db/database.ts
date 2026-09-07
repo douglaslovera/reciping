@@ -1,47 +1,17 @@
-import { drizzle } from 'drizzle-orm/expo-sqlite';
-import { openDatabaseSync, type SQLiteDatabase } from 'expo-sqlite';
-import { Platform } from 'react-native';
+import type { SQLiteDatabase } from 'expo-sqlite';
+import type { AppDatabase } from './database.native';
 
-import { migrateDatabase } from '@/db/migrations';
-import * as schema from '@/db/schema';
-
-function createOrm(database: SQLiteDatabase) {
-  return drizzle(database, { schema });
-}
-
-export type AppDatabase = ReturnType<typeof createOrm>;
-
-let sqliteDatabase: SQLiteDatabase | null = null;
-let appDatabase: AppDatabase | null = null;
+// The browser is a UI preview. Avoid bundling the native SQLite worker there.
+export type { AppDatabase } from './database.native';
 
 export async function initializeDatabase() {
-  if (Platform.OS === 'web') {
-    return null;
-  }
-
-  if (!sqliteDatabase) {
-    sqliteDatabase = openDatabaseSync('reciping.db', {
-      enableChangeListener: true,
-    });
-    await migrateDatabase(sqliteDatabase);
-    appDatabase = createOrm(sqliteDatabase);
-  }
-
-  return appDatabase;
+  return null;
 }
 
-export function getDatabase() {
-  if (!appDatabase) {
-    throw new Error('The local database has not finished initializing.');
-  }
-
-  return appDatabase;
+export function getDatabase(): AppDatabase {
+  throw new Error('Saving is available in the iOS and Android app.');
 }
 
-export function getSQLiteDatabase() {
-  if (!sqliteDatabase) {
-    throw new Error('The local database has not finished initializing.');
-  }
-
-  return sqliteDatabase;
+export function getSQLiteDatabase(): SQLiteDatabase {
+  throw new Error('Saving is available in the iOS and Android app.');
 }
